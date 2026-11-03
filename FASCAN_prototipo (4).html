@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FASCAN | Reconocimiento facial</title>
+<style>
+:root{--navy:#111a3a;--blue:#3157d5;--cyan:#42c7dc;--bg:#f3f6fc;--ink:#18213d;--muted:#68738d;--green:#159b68;--red:#d74352}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--ink)}
+header{background:linear-gradient(120deg,#101936,#243c83);color:white;padding:22px max(5vw,22px);display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:13px}.logo{width:48px;height:48px;border:2px solid #65d9e8;border-radius:15px;display:grid;place-items:center;font-size:25px;color:#65d9e8;font-weight:800}.brand h1{font-size:24px;letter-spacing:3px;margin:0}.brand small{color:#c4d3ff;letter-spacing:2px}
+.pill{font-size:12px;border:1px solid #7184c0;border-radius:30px;padding:8px 12px;color:#dbe4ff}
+main{max-width:1120px;margin:32px auto;padding:0 20px}.intro{margin-bottom:22px}.intro h2{font-size:27px;margin:0 0 8px}.intro p{margin:0;color:var(--muted);line-height:1.5}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}.card{background:white;border-radius:20px;padding:22px;box-shadow:0 8px 30px #1b2d5710;border:1px solid #e6eaf3}
+.card h3{margin:0 0 15px;font-size:18px}.camera{background:#10182d;border-radius:16px;aspect-ratio:4/3;position:relative;overflow:hidden;display:grid;place-items:center}
+video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.camera-placeholder{color:#c5cee4;text-align:center;padding:20px;position:absolute}.camera-placeholder span{font-size:42px;display:block;margin-bottom:10px}
+.camera.active .camera-placeholder{display:none}.scan-frame{position:absolute;width:47%;height:70%;border:2px solid #56d8e7;border-radius:48% 48% 42% 42%;box-shadow:0 0 0 999px #07102625;pointer-events:none}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}.btn{border:0;border-radius:11px;padding:12px 16px;font-weight:700;cursor:pointer;font-size:14px}.primary{background:var(--blue);color:white}.secondary{background:#e9efff;color:#2947ad}.dark{background:#edf0f6;color:#3d4964}.btn:disabled{opacity:.5;cursor:not-allowed}
+.status{margin-top:15px;padding:14px;border-radius:12px;background:#f1f4fa;color:#53617c;line-height:1.45;font-size:14px;min-height:52px}.status.success{background:#e6f7ef;color:#087449}.status.error{background:#fff0f1;color:#b12c3b}.status.info{background:#eaf2ff;color:#284caa}
+.field{width:100%;border:1px solid #dce2ee;border-radius:10px;padding:12px;font-size:14px;margin:0 0 12px;outline-color:var(--blue)}
+.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
+.records{margin-top:20px}.record{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #edf0f5;font-size:14px}.record:last-child{border:0}.tag{background:#e7f7ef;color:#087449;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:700}
+footer{text-align:center;color:#8992a7;font-size:12px;padding:25px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}header{gap:10px}.pill{display:none}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="logo">F</div><div><h1>FASCAN</h1><small>SEGURIDAD E IDENTIFICACIÓN</small></div></div>
+ <div class="pill">PROTOTIPO DEMOSTRATIVO</div>
+</header>
+<main>
+ <section class="intro"><h2>Reconocimiento facial</h2><p>Registra un rostro y verifica si una persona está autorizada. Coloca tu cara frente a la cámara y sigue las instrucciones.</p></section>
+ <div class="grid">
+  <section class="card">
+   <h3>📷 Escáner facial</h3>
+   <div class="camera" id="cameraBox">
+    <video id="video" autoplay muted playsinline></video>
+    <div class="camera-placeholder"><span>◎</span>Activa la cámara para comenzar</div>
+    <div class="scan-frame"></div>
+   </div>
+   <div class="actions">
+    <button class="btn primary" id="startBtn">Activar cámara</button>
+    <button class="btn secondary" id="registerBtn" disabled>Registrar rostro</button>
+    <button class="btn dark" id="verifyBtn" disabled>Verificar rostro</button>
+   </div>
+   <div class="status" id="status">Estado: esperando que actives la cámara.</div>
+   <p class="hint">Consejo: mira de frente, procura tener buena iluminación y mantén tu rostro dentro del óvalo.</p>
+  </section>
+  <section class="card">
+   <h3>＋ Nuevo registro</h3>
+   <input class="field" id="personName" maxlength="40" placeholder="Nombre de la persona (ej. Angélica)">
+   <p class="hint">Activa la cámara, escribe un nombre y pulsa «Registrar rostro». El sistema guardará una plantilla facial para esta demostración.</p>
+   <div class="records">
+    <h3 style="margin-top:25px">Personas registradas <span id="count" style="color:#7b86a0;font-size:13px">(0)</span></h3>
+    <div id="recordList"><p class="hint">Todavía no hay registros.</p></div>
+   </div>
+   <button class="btn dark" id="clearBtn" style="margin-top:18px">Borrar todos los registros</button>
+  </section>
+ </div>
+ <p class="hint" style="margin-top:18px">Privacidad: esta demo procesa el rostro en tu navegador y guarda las plantillas únicamente en el almacenamiento local de este dispositivo. No se envían a un servidor. No uses datos biométricos de otras personas sin su consentimiento. Esto es un prototipo escolar, no un sistema de seguridad real.</p>
+</main>
+<footer>FASCAN © 2026 · Prototipo académico de reconocimiento facial</footer>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+const MODEL_URL='https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+const video=document.getElementById('video'), cameraBox=document.getElementById('cameraBox');
+const statusBox=document.getElementById('status');
+const startBtn=document.getElementById('startBtn'), registerBtn=document.getElementById('registerBtn'), verifyBtn=document.getElementById('verifyBtn');
+let stream=null, modelsReady=false, busy=false;
+let people=JSON.parse(localStorage.getItem('fascan_people')||'[]');
+
+function setStatus(message,type=''){statusBox.textContent=message;statusBox.className='status '+type}
+function savePeople(){localStorage.setItem('fascan_people',JSON.stringify(people));renderPeople()}
+function renderPeople(){
+ document.getElementById('count').textContent=`(${people.length})`;
+ const box=document.getElementById('recordList');
+ if(!people.length){box.innerHTML='<p class="hint">Todavía no hay registros.</p>';return}
+ box.innerHTML=people.map((p,i)=>`<div class="record"><span>👤 ${escapeHtml(p.name)}</span><span class="tag">REGISTRADO</span></div>`).join('');
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function loadModels(){
+ if(modelsReady)return;
+ if(!window.faceapi)throw new Error('No se pudo cargar la librería de reconocimiento. Revisa tu conexión a internet y vuelve a abrir la página.');
+ setStatus('Preparando el sistema de reconocimiento facial…','info');
+ await Promise.all([
+  faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+  faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+  faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+ ]);
+ modelsReady=true;
+}
+async function startCamera(){
+ try{
+  startBtn.disabled=true;
+  await loadModels();
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+  video.srcObject=stream;await video.play();cameraBox.classList.add('active');
+  registerBtn.disabled=false;verifyBtn.disabled=false;
+  setStatus('Cámara activa. Escribe un nombre para registrar o pulsa «Verificar rostro».','success');
+ }catch(e){startBtn.disabled=false;setStatus('No se pudo iniciar: '+e.message+'. Permite el acceso a la cámara y abre esta página en Chrome o Edge.','error')}
+}
+async function getDescriptor(){
+ if(!modelsReady)await loadModels();
+ const result=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.45})).withFaceLandmarks().withFaceDescriptor();
+ if(!result)throw new Error('No detectamos un rostro. Mira de frente y mejora la iluminación.');
+ return Array.from(result.descriptor);
+}
+registerBtn.addEventListener('click',async()=>{
+ if(busy)return;const name=document.getElementById('personName').value.trim();
+ if(!name){setStatus('Escribe el nombre antes de registrar el rostro.','error');return}
+ busy=true;registerBtn.disabled=verifyBtn.disabled=true;
+ try{
+  const descriptor=await getDescriptor();
+  const existing=people.findIndex(p=>p.name.toLowerCase()===name.toLowerCase());
+  const entry={name,descriptor};
+  if(existing>=0)people[existing]=entry;else people.push(entry);
+  savePeople();setStatus('✓ ROSTRO REGISTRADO. '+name+' ya está en la base de datos local de FASCAN.','success');
+ }catch(e){setStatus(e.message,'error')}
+ finally{busy=false;registerBtn.disabled=verifyBtn.disabled=false}
+});
+verifyBtn.addEventListener('click',async()=>{
+ if(busy)return;if(!people.length){setStatus('NO REGISTRADO: todavía no hay rostros guardados. Registra uno primero.','error');return}
+ busy=true;registerBtn.disabled=verifyBtn.disabled=true;
+ try{
+  setStatus('Escaneando y comparando el rostro…','info');
+  const current=await getDescriptor();
+  let best={distance:Infinity,name:null};
+  for(const p of people){
+   const d=faceapi.euclideanDistance(current,p.descriptor);
+   if(d<best.distance)best={distance:d,name:p.name};
+  }
+  if(best.distance<0.50)setStatus('✓ ACCESO APROBADO. Rostro reconocido: '+best.name+'.','success');
+  else setStatus('✕ NO REGISTRADO. El rostro no coincide con las personas registradas.','error');
+ }catch(e){setStatus(e.message,'error')}
+ finally{busy=false;registerBtn.disabled=verifyBtn.disabled=false}
+});
+startBtn.addEventListener('click',startCamera);
+document.getElementById('clearBtn').addEventListener('click',()=>{
+ if(confirm('¿Seguro que deseas borrar todos los registros de este dispositivo?')){people=[];savePeople();setStatus('Se borraron todos los registros locales.','info')}
+});
+renderPeople();
+</script>
+</body>
+</html>
